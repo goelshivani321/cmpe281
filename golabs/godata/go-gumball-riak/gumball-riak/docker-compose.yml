@@ -1,14 +1,14 @@
 version: "3"
 services:
   nodejs:
-    image: nodejs
+    image: node
     ports:
-      - 8080:8080    
+      - 8080:8080
     restart: always
     links:
       - kong
     depends_on:
-      - kong     
+      - kong
   gumball:
     image: gumball
     ports:
@@ -23,15 +23,15 @@ services:
       - member
       - mysql
     depends_on:
-      - member   
-      - mysql 
+      - member
+      - mysql
   mysql:
     image: mysql:5.5
     ports:
       - 3306:3306
     restart: always
     environment:
-      - MYSQL_ROOT_PASSWORD=cmpe281   
+      - MYSQL_ROOT_PASSWORD=cmpe281
   cassandra:
     image: cassandra:2.2
   kong:
@@ -45,9 +45,9 @@ services:
     depends_on:
       - gumball
       - cassandra
-    environment:  
+    environment:
       - KONG_DATABASE=cassandra
-      - KONG_CASSANDRA_CONTACT_POINTS=cassandra 
+      - KONG_CASSANDRA_CONTACT_POINTS=cassandra
       - KONG_PG_HOST=cassandra
   coordinator:
     image: basho/riak-kv
@@ -77,4 +77,3 @@ services:
 volumes:
   schemas:
     external: false
-

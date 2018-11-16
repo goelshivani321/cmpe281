@@ -135,11 +135,56 @@ func TestDSNReformat(t *testing.T) {
 	}
 }
 
+func TestDSNServerPubKey(t *testing.T) {
+	baseDSN := "User:password@tcp(localhost:5555)/dbname?serverPubKey="
+
+	RegisterServerPubKey("testKey", testPubKeyRSA)
+	defer DeregisterServerPubKey("testKey")
+
+	tst := baseDSN + "testKey"
+	cfg, err := ParseDSN(tst)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	if cfg.ServerPubKey != "testKey" {
+		t.Errorf("unexpected cfg.ServerPubKey value: %v", cfg.ServerPubKey)
+	}
+	if cfg.pubKey != testPubKeyRSA {
+		t.Error("pub key pointer doesn't match")
+	}
+
+	// Key is missing
+	tst = baseDSN + "invalid_name"
+	cfg, err = ParseDSN(tst)
+	if err == nil {
+		t.Errorf("invalid name in DSN (%s) but did not error. Got config: %#v", tst, cfg)
+	}
+}
+
+func TestDSNServerPubKeyQueryEscape(t *testing.T) {
+	const name = "&%!:"
+	dsn := "User:password@tcp(localhost:5555)/dbname?serverPubKey=" + url.QueryEscape(name)
+
+	RegisterServerPubKey(name, testPubKeyRSA)
+	defer DeregisterServerPubKey(name)
+
+	cfg, err := ParseDSN(dsn)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	if cfg.pubKey != testPubKeyRSA {
+		t.Error("pub key pointer doesn't match")
+	}
+}
+
 func TestDSNWithCustomTLS(t *testing.T) {
 	baseDSN := "User:password@tcp(localhost:5555)/dbname?tls="
 	tlsCfg := tls.Config{}
 
 	RegisterTLSConfig("utils_test", &tlsCfg)
+	defer DeregisterTLSConfig("utils_test")
 
 	// Custom TLS is missing
 	tst := baseDSN + "invalid_tls"
@@ -173,8 +218,34 @@ func TestDSNWithCustomTLS(t *testing.T) {
 	} else if tlsCfg.ServerName != "" {
 		t.Errorf("tlsCfg was mutated ServerName (%s) should be empty parsing DSN (%s).", name, tst)
 	}
+}
 
-	DeregisterTLSConfig("utils_test")
+func TestDSNTLSConfig(t *testing.T) {
+	expectedServerName := "example.com"
+	dsn := "tcp(example.com:1234)/?tls=true"
+
+	cfg, err := ParseDSN(dsn)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if cfg.tls == nil {
+		t.Error("cfg.tls should not be nil")
+	}
+	if cfg.tls.ServerName != expectedServerName {
+		t.Errorf("cfg.tls.ServerName should be %q, got %q (host with port)", expectedServerName, cfg.tls.ServerName)
+	}
+
+	dsn = "tcp(example.com)/?tls=true"
+	cfg, err = ParseDSN(dsn)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if cfg.tls == nil {
+		t.Error("cfg.tls should not be nil")
+	}
+	if cfg.tls.ServerName != expectedServerName {
+		t.Errorf("cfg.tls.ServerName should be %q, got %q (host without port)", expectedServerName, cfg.tls.ServerName)
+	}
 }
 
 func TestDSNWithCustomTLSQueryEscape(t *testing.T) {
@@ -184,6 +255,7 @@ func TestDSNWithCustomTLSQueryEscape(t *testing.T) {
 	tlsCfg := tls.Config{ServerName: name}
 
 	RegisterTLSConfig(configKey, &tlsCfg)
+	defer DeregisterTLSConfig(configKey)
 
 	cfg, err := ParseDSN(dsn)
 

@@ -19,7 +19,7 @@ import (
 		Reference: https://golang.org/pkg/database/sql/
 */
 
-//var mysql_connect = "root:cmpe281@tcp(127.0.0.1:3306)/cmpe281"
+// var mysql_connect = "root:cmpe281@tcp(127.0.0.1:3306)/cmpe281"
 var mysql_connect = "root:cmpe281@tcp(mysql:3306)/cmpe281"
 
 // NewServer configures and returns a Server.
@@ -178,7 +178,7 @@ func gumballUpdateHandler(formatter *render.Render) http.HandlerFunc {
 // API Create New Gumball Order
 func gumballNewOrderHandler(formatter *render.Render) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-		uuid := uuid.NewV4()
+		uuid,_  := uuid.NewV4()
 		var ord = order{
 			Id:          uuid.String(),
 			OrderStatus: "Order Placed",
